@@ -16,6 +16,7 @@ from recap.types import (
     StringType,
     StructType,
     UnionType,
+    UnknownType,
 )
 
 
@@ -147,7 +148,7 @@ class AvroConverter:
                 # meaning from other types.
                 avro_schema.pop("aliases", None)
             case _:
-                raise ValueError(f"Unsupported Recap type: {recap_type}")
+                avro_schema["type"] = "unknown"
 
         if len(avro_schema) == 1 and isinstance(avro_schema["type"], str):
             # Convert {"type": "type"} to "type"
@@ -352,7 +353,7 @@ class AvroConverter:
                 # Short circuit so we don't re-register aliases for nested types
                 return return_type
             case _:
-                raise ValueError(f"Unsupported Avro schema: {avro_schema}")
+                return UnknownType(**extra_attrs)
 
         if return_type.alias is not None:
             self.registry.register_alias(return_type)
@@ -431,4 +432,4 @@ class AvroConverter:
                     **extra_attrs,
                 )
             case _:
-                raise ValueError(f"Unsupported Avro logical type: {logical_type}")
+                return UnknownType(**extra_attrs)

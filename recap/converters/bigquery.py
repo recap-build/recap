@@ -10,6 +10,7 @@ from recap.types import (
     ListType,
     StringType,
     StructType,
+    UnknownType,
 )
 
 
@@ -69,7 +70,7 @@ class BigQueryConverter:
                         scale=field.scale or 0,
                     )
                 case _:
-                    raise ValueError(f"Unrecognized field type: {field.field_type}")
+                    field_type = UnknownType()
 
             if field.mode == "REPEATED":
                 field_type = ListType(field_type)

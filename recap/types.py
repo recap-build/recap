@@ -362,6 +362,21 @@ class RecapTypeRegistry:
             raise TypeError(f"No RecapType with alias {alias} found.")
 
 
+class UnknownType(RecapType):
+    """Represents an unknown or unsupported Recap type."""
+
+    def __init__(self, description: str = "Unknown or unsupported type", **extra_attrs):
+        super().__init__("unknown", **extra_attrs)
+        self.description = description
+
+    def __eq__(self, other):
+        return super().__eq__(other) and self.description == other.description
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(description={self.description})"
+
+
+
 def from_dict(
     type_dict: dict | list | str,
     registry: RecapTypeRegistry | None = None,
@@ -471,6 +486,9 @@ def from_dict(
                     [from_dict(t, registry) for t in type_dict.pop("types")],
                     **type_dict,
                 )
+            case "unknown":
+                description = type_dict.pop("description", "Unknown or unsupported type")
+                recap_type = UnknownType(description=description,  **type_dict)
             case _:
                 recap_type = ProxyType(type_name, registry, **type_dict)
     else:
@@ -564,7 +582,8 @@ def to_dict(recap_type: RecapType, clean=True, alias=True) -> dict | list | str:
             # These types just have a "type" attribute
             pass
         case _:
-            raise ValueError(f"Unsupported type: {recap_type.type_}")
+            type_dict = {"type": "unknown", "description": recap_type.description}
+            type_dict.update(recap_type.extra_attrs)
 
     # Replace concrete type definitions with aliases when possible
     type_dict = alias_dict(type_dict) if alias else type_dict
@@ -712,6 +731,12 @@ def clean_dict(type_dict: dict | list | str) -> dict | list | str:
     if type_dict["type"] == "union" and len(type_dict) == 2:
         return type_dict["types"]
 
+    if isinstance(type_dict, dict) and type_dict.get("type") == "unknown":
+        cleaned_dict = {"type": "unknown"}  # Preserve the type indication
+        if "description" in type_dict:
+            cleaned_dict["description"] = type_dict["description"]
+        return cleaned_dict
+
     return type_dict
 
 
@@ -775,6 +800,7 @@ TYPE_CLASSES = {
     "struct": StructType,
     "enum": EnumType,
     "union": UnionType,
+    "unknown": UnknownType,
 }
 
 

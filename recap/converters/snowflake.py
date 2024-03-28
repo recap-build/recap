@@ -1,7 +1,7 @@
 from typing import Any
 
 from recap.converters.dbapi import DbapiConverter
-from recap.types import BoolType, BytesType, FloatType, IntType, RecapType, StringType
+from recap.types import BoolType, BytesType, FloatType, IntType, RecapType, StringType, UnknownType
 
 
 class SnowflakeConverter(DbapiConverter):
@@ -75,6 +75,6 @@ class SnowflakeConverter(DbapiConverter):
             unit = self._get_time_unit(params) or "nanosecond"
             base_type = IntType(bits=32, logical="build.recap.Time", unit=unit)
         else:
-            raise ValueError(f"Unknown data type: {data_type}")
+            base_type = UnknownType()
 
         return base_type

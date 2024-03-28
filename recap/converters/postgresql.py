@@ -15,6 +15,7 @@ from recap.types import (
     RecapTypeRegistry,
     StringType,
     UnionType,
+    UnknownType,
 )
 
 MAX_FIELD_SIZE = 1073741824
@@ -144,7 +145,7 @@ class PostgresqlConverter(DbapiConverter):
                 symbols=column_props["ENUM_VALUES"],
             )
         else:
-            raise ValueError(f"Unknown data type: {data_type}")
+            base_type = UnknownType()
 
         return base_type
 

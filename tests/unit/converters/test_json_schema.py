@@ -17,6 +17,7 @@ from recap.types import (
     StringType,
     StructType,
     UnionType,
+    UnknownType,
 )
 
 
@@ -954,3 +955,95 @@ def test_from_recap_types_union_type():
 
     Draft202012Validator.check_schema(expected_schema)
     assert schema == expected_schema
+
+
+def test_unsupported_json_schema_feature_to_unknown_type():
+    json_schema = """
+    {
+        "type": "object",
+        "properties": {
+            "custom_feature": {"type": "magic"}
+        }
+    }
+    """
+    struct_type = JSONSchemaConverter().to_recap(json_schema)
+    assert isinstance(struct_type, StructType)
+    assert len(struct_type.fields) == 1
+    unknown_type = struct_type.fields[0]
+    assert isinstance(unknown_type, UnionType)  # Assuming all fields are treated as optional
+    unknown_type = unknown_type.types[1]  # Skip the NullType in the union
+    assert isinstance(unknown_type, UnknownType)
+    assert unknown_type.description == "Unsupported JSON schema type encountered"
+
+
+def test_unknown_type_with_description():
+    json_schema = """
+    {
+        "type": "magic",
+        "description": "This is a magical custom type"
+    }
+    """
+    struct_type = JSONSchemaConverter().to_recap(json_schema)
+    assert isinstance(struct_type, StructType), "Expected StructType"
+    # Assuming StructType.fields is a list of dictionaries with 'name' and 'type' keys
+    unknown_field = next((field for field in struct_type.fields if field['name'] == "unknown_field"), None)
+    assert unknown_field is not None, "StructType does not contain an 'unknown_field'"
+    assert isinstance(unknown_field['type'], UnknownType), "Expected 'unknown_field' to be UnknownType"
+    assert unknown_field['type'].description == "This is a magical custom type", "UnknownType description does not match"
+
+
+def test_nested_unknown_type_within_struct():
+    json_schema = """
+    {
+        "type": "object",
+        "properties": {
+            "nested_unknown": {
+                "type": "object",
+                "properties": {
+                    "magic_property": {"type": "magic"}
+                }
+            }
+        }
+    }
+    """
+    struct_type = JSONSchemaConverter().to_recap(json_schema)
+    assert isinstance(struct_type, StructType)
+    nested_struct = struct_type.fields[0]
+    assert isinstance(nested_struct, UnionType)  # Assuming optional
+    nested_struct = nested_struct.types[1]
+    assert isinstance(nested_struct, StructType)
+    unknown_type = nested_struct.fields[0]
+    assert isinstance(unknown_type, UnionType)
+    unknown_type = unknown_type.types[1]
+    assert isinstance(unknown_type, UnknownType)
+
+
+def test_union_type_including_unknown_type():
+    json_schema = """
+    {
+        "type": "object",
+        "properties": {
+            "union_with_unknown": {
+                "type": ["string", "magic"]
+            }
+        }
+    }
+    """
+    struct_type = JSONSchemaConverter().to_recap(json_schema)
+    assert isinstance(struct_type, StructType), "Expected StructType"
+    union_field = struct_type.fields[0]
+    assert isinstance(union_field, UnionType), "Expected UnionType"
+    assert any(isinstance(t, NullType) for t in union_field.types), "Expected NullType in Union"
+    assert any(isinstance(t, UnknownType) for t in union_field.types), "Expected UnknownType in Union"
+
+
+def test_proxy_type_resolving_to_unknown_type():
+    converter = JSONSchemaConverter()
+    registry = converter.registry
+    alias = "com.example.unknown"
+    unknown_type = UnknownType(description="A mysterious type.", alias=alias)
+    registry.register_alias(unknown_type)
+    proxy_type = ProxyType(alias=alias, registry=registry)
+    resolved_type = proxy_type.resolve()
+    assert isinstance(resolved_type, UnknownType), "The resolved type should be UnknownType"
+    assert resolved_type.description == unknown_type.description, "The description of the resolved UnknownType does not match"

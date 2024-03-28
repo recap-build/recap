@@ -10,6 +10,7 @@ from recap.types import (
     RecapType,
     StringType,
     UnionType,
+    UnknownType,
 )
 
 # SQLite's maximum length is 2^31-1 bytes, or 2147483647 bytes.
@@ -59,9 +60,7 @@ class SQLiteConverter(DbapiConverter):
                     ]
                 )
             case _:
-                raise ValueError(
-                    f"Unsupported `{column_type}` type for `{column_name}`"
-                )
+                return UnknownType()
 
     @staticmethod
     def get_affinity(column_type: str | None) -> SQLiteAffinity:

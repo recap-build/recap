@@ -26,6 +26,7 @@ from recap.types import (
     StringType,
     StructType,
     UnionType,
+    UnknownType,
 )
 
 
@@ -160,7 +161,7 @@ class HiveMetastoreConverter:
                     **extra_attrs,
                 )
             case _:
-                raise ValueError(f"Unsupported type: {htype}")
+                recap_type = UnknownType(**extra_attrs)
 
         if not isinstance(recap_type, UnionType) and not isinstance(
             recap_type,

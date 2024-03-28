@@ -1,7 +1,7 @@
 from typing import Any
 
 from recap.converters.dbapi import DbapiConverter
-from recap.types import BytesType, FloatType, IntType, RecapType, StringType
+from recap.types import BytesType, FloatType, IntType, RecapType, StringType, UnknownType
 
 
 class MysqlConverter(DbapiConverter):
@@ -77,6 +77,6 @@ class MysqlConverter(DbapiConverter):
                 signed=False,
             )  # Years are typically 2-byte values
         else:
-            raise ValueError(f"Unknown data type: {data_type}")
+            base_type = UnknownType()
 
         return base_type

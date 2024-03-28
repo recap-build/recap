@@ -24,6 +24,7 @@ from recap.types import (
     StringType,
     StructType,
     UnionType,
+    UnknownType,
 )
 
 AliasStrategy = Callable[[str], str]
@@ -44,6 +45,9 @@ class JSONSchemaConverter:
         alias_strategy = alias_strategy or JSONSchemaConverter.urn_to_alias
         json_schema = json.loads(json_schema_str)
         recap_schema = self._parse(json_schema, alias_strategy)
+        if isinstance(recap_schema, UnknownType):
+            return StructType(fields=[{"name": "unknown_field", "type": recap_schema}],
+                              description=recap_schema.description)
         if not isinstance(recap_schema, StructType):
             raise ValueError("JSON schema must be an object")
         return recap_schema
@@ -133,7 +137,8 @@ class JSONSchemaConverter:
                     )  # pyright: ignore[reportGeneralTypeIssues]
                     return self._parse(resource.contents, alias_strategy)
             case _:
-                raise ValueError(f"Unsupported JSON schema: {json_schema}")
+                description = json_schema.get("description", "Unsupported JSON schema type encountered")
+                return UnknownType(description=description, **extra_attrs)
 
     def from_recap(self, recap_type: RecapType) -> dict[str, Any]:
         """
@@ -262,8 +267,8 @@ class JSONSchemaConverter:
                 return self._convert_field(field.resolve())
             case ProxyType(alias=str(alias)):
                 return type_dict | {"$ref": f"#/$defs/{alias}"}
-            case _:
-                raise ValueError(f"Unsupported RecapType: {field.type_}")
+            case UnknownType():
+                type_dict |= {"type": "unknown", "description": field.description}
         return type_dict
 
     @staticmethod

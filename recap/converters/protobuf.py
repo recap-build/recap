@@ -28,6 +28,7 @@ from recap.types import (
     StringType,
     StructType,
     UnionType,
+    UnknownType,
 )
 
 DEFAULT_NAMESPACE = "_root"
@@ -486,4 +487,4 @@ class ProtobufConverter:
                 # Always start from the root since Recap namespaces are always root-based.
                 return Field(field_name, field_number, "." + alias)
             case _:
-                raise ValueError(f"Invalid RecapType: {recap_type}")
+                return UnknownType()

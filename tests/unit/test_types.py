@@ -20,6 +20,7 @@ from recap.types import (
     StringType,
     StructType,
     UnionType,
+    UnknownType,
     from_dict,
     to_dict,
 )
@@ -194,6 +195,26 @@ def test_from_dict_raises_for_missing_type():
     with pytest.raises(AssertionError):
         from_dict({"alias": "alias"})
 
+def test_from_dict_unknown_type():
+    unknown_type_dict = {
+        "type": "unknown",
+        "name": "bleh",
+    }
+    recap_type = from_dict(unknown_type_dict)
+    assert isinstance(recap_type, UnknownType)
+    assert recap_type.extra_attrs["name"] == "bleh"
+    assert recap_type.description == "Unknown or unsupported type"
+
+def test_from_dict_unknown_with_description_type():
+    unknown_type_dict = {
+        "type": "unknown",
+        "name": "bleh",
+        "description": "This is a description",
+    }
+    recap_type = from_dict(unknown_type_dict)
+    assert isinstance(recap_type, UnknownType)
+    assert recap_type.extra_attrs["name"] == "bleh"
+    assert recap_type.description == "This is a description"
 
 def test_from_dict_self_referencing_structure():
     # define the test_dict with the self-referencing structure
